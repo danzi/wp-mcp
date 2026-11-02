@@ -3,7 +3,7 @@ Contributors: siteowner
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.3.12
+Stable tag: 1.3.13
 License: GPLv2 or later
 
 Source URLs, social clickbait titles, and social post URLs on posts. MCP get/set + find posts by source URL array.
@@ -38,6 +38,9 @@ Optional companion: ZIP import and Polylang create-post do not require this plug
 Debug: define EMPM_DEBUG true or option empm_debug.
 
 == Changelog ==
+
+= 1.3.13 =
+* MCP annotations: get-fields, find-by-sources, find-by-social are readonly; set-fields is write
 
 = 1.3.12 =
 * filters: each category includes Polylang language; helper can show cats for the selected language

@@ -50,12 +50,17 @@ final class RegisterAbilities {
 			return;
 		}
 
-		$mcp = static function ( string $title ): array {
+		$mcp = static function ( string $title, bool $readonly = false ): array {
 			return [
-				'label'       => $title,
-				'description' => $title,
-				'mcp'         => [ 'public' => true ],
-				'show_in_rest'=> true,
+				'public'       => true,
+				'show_in_rest' => true,
+				'mcp'          => [ 'public' => true ],
+				'annotations'  => [
+					'title'       => $title,
+					'readonly'    => $readonly,
+					'destructive' => false,
+					'idempotent'  => $readonly,
+				],
 			];
 		};
 
@@ -65,7 +70,7 @@ final class RegisterAbilities {
 				'label'               => 'Get source URLs and social titles',
 				'description'         => 'Returns source_urls, social_titles, and social_posts (network => public URL; empty/missing key = not posted on that network) for a post. Does not return post content.',
 				'category'            => 'easy-mcp-post-meta',
-				'meta'                => $mcp( 'Post Extra Fields: Get' ),
+				'meta'                => $mcp( 'Post Extra Fields: Get', true ),
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => [
@@ -92,7 +97,7 @@ final class RegisterAbilities {
 				'label'               => 'Set source URLs, social titles, and social posts',
 				'description'         => 'Writes source_urls, social_titles, and/or social_posts on an existing post. Omit a field to keep the current value. social_posts is one object for all networks: { "facebook": "https://…", "telegram": "https://…" }. Empty or missing key = not posted there. To mark Facebook as posted, set facebook to the public post URL.',
 				'category'            => 'easy-mcp-post-meta',
-				'meta'                => $mcp( 'Post Extra Fields: Set' ),
+				'meta'                => $mcp( 'Post Extra Fields: Set', false ),
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => [
@@ -134,7 +139,7 @@ final class RegisterAbilities {
 				'label'               => 'Find posts by source URLs',
 				'description'         => 'Pass an array of source URLs. Returns compact cards for posts that already stored any of those URLs (title, short excerpt, language, source_urls, social_posts, matched_urls, status, edit_link). Does not return full content. On news search, if count>0 skip that story and search another.',
 				'category'            => 'easy-mcp-post-meta',
-				'meta'                => $mcp( 'Post Extra Fields: Find By Sources' ),
+				'meta'                => $mcp( 'Post Extra Fields: Find By Sources', true ),
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => [
@@ -196,7 +201,7 @@ final class RegisterAbilities {
 				'label'               => 'Find posts by social publish status',
 				'description'         => 'Checks where a post was published on socials. With post_id: returns that post and posted=true/false for the network (default facebook). Without post_id: lists compact cards. posted=false (default) = not yet published on that network; posted=true = already has a public URL there. Optional language and limit (max 50). Card fields: title, excerpt, language, source_urls, social_posts, posted_on[], status. Does not return full content.',
 				'category'            => 'easy-mcp-post-meta',
-				'meta'                => $mcp( 'Post Extra Fields: Find By Social' ),
+				'meta'                => $mcp( 'Post Extra Fields: Find By Social', true ),
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => [
