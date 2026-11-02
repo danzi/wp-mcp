@@ -1,0 +1,8 @@
+.env
+public-files/runtime/
+.DS_Store
+**/.DS_Store
+**/images/upload/
+*.b64
+*.tgz
+ngrok
