@@ -1,0 +1,13 @@
+{
+  "title": "Beispielnachricht",
+  "content": "<p>Lead.</p>\n[image name=\"image1.jpg\" alt=\"Szene\"]\n<p>Text.</p>",
+  "status": "draft",
+  "language": "de",
+  "images": "images",
+  "thumbnail": "thumbnail.jpg",
+  "category": "Nachrichten",
+  "tags": ["tag1", "tag2", "tag3", "tag4", "tag5"],
+  "yoast_title": "SEO Titel",
+  "yoast_description": "Meta description.",
+  "yoast_focus_keyword": "nachrichten"
+}

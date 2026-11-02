@@ -1,0 +1,24 @@
+{
+  "post_id": 0,
+  "title": "Example article title",
+  "slug": "example-article-title",
+  "status": "draft",
+  "language": "de",
+  "excerpt": "Clickbait text for Facebook.",
+  "images": "images",
+  "thumbnail": "thumbnail.jpg",
+  "category": "Nachrichten",
+  "tags": ["tag1", "tag2", "tag3", "tag4", "tag5"],
+  "source_urls": ["https://example.com/original-story"],
+  "social_titles": [
+    "😢 Clickbait social headline one 💔",
+    "😱 Clickbait social headline two 🏠",
+    "💔 Clickbait social headline three 😢"
+  ],
+  "yoast": {
+    "title": "SEO title",
+    "description": "SEO meta description.",
+    "focus_keyword": "keyword"
+  },
+  "content": "<p>Lead paragraph.</p>\n\n<h2>Heading</h2>\n\n<p>Body text.</p>\n\n[image name=\"image1.jpg\" alt=\"scene\"]\n\n<p>More text.</p>\n\n[image name=\"image2.jpg\"]\n"
+}

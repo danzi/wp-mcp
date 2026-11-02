@@ -1,0 +1,134 @@
+.empzi-page .empzi-head {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.empzi-info-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 22px;
+	height: 22px;
+	padding: 0;
+	border: 1px solid #2271b1;
+	border-radius: 50%;
+	background: #fff;
+	color: #2271b1;
+	font: italic 700 13px/1 Georgia, "Times New Roman", serif;
+	cursor: pointer;
+	vertical-align: middle;
+}
+
+.empzi-info-btn:hover,
+.empzi-info-btn:focus {
+	background: #2271b1;
+	color: #fff;
+	outline: none;
+}
+
+.empzi-or {
+	max-width: 640px;
+	margin: 8px 0;
+	color: #50575e;
+	font-weight: 600;
+}
+
+.empzi-page .large-text {
+	max-width: 640px;
+}
+
+.empzi-drop {
+	max-width: 640px;
+	margin: 16px 0 12px;
+	padding: 28px 20px;
+	border: 2px dashed #c3c4c7;
+	border-radius: 4px;
+	background: #fff;
+	text-align: center;
+}
+
+.empzi-drop.is-dragover {
+	border-color: #2271b1;
+	background: #f0f6fc;
+}
+
+.empzi-drop label {
+	display: block;
+	font-size: 14px;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.empzi-drop input[type="file"] {
+	margin-top: 12px;
+}
+
+.empzi-filename {
+	margin: 8px 0 0;
+	color: #50575e;
+}
+
+.empzi-modal {
+	display: none;
+	position: fixed;
+	inset: 0;
+	z-index: 100000;
+}
+
+.empzi-modal.is-open {
+	display: block;
+}
+
+.empzi-modal__backdrop {
+	position: absolute;
+	inset: 0;
+	background: rgba(0, 0, 0, 0.55);
+}
+
+.empzi-modal__panel {
+	position: relative;
+	z-index: 1;
+	max-width: 720px;
+	max-height: 86vh;
+	margin: 6vh auto;
+	padding: 20px 24px 24px;
+	overflow: auto;
+	background: #fff;
+	border-radius: 4px;
+	box-shadow: 0 8px 28px rgba(0, 0, 0, 0.28);
+}
+
+.empzi-modal__panel h2 {
+	margin-top: 0;
+}
+
+.empzi-modal__close {
+	float: right;
+	margin-top: -4px;
+}
+
+.empzi-spec pre {
+	padding: 12px;
+	overflow: auto;
+	background: #f6f7f7;
+	border: 1px solid #dcdcde;
+	white-space: pre-wrap;
+}
+
+.empzi-spec table {
+	width: 100%;
+	border-collapse: collapse;
+}
+
+.empzi-spec th,
+.empzi-spec td {
+	padding: 6px 8px;
+	border-bottom: 1px solid #dcdcde;
+	text-align: left;
+	vertical-align: top;
+}
+
+.empzi-spec ul {
+	margin: 0 0 16px 18px;
+}
