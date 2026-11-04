@@ -1012,3 +1012,52 @@ body.fh-select-mode video {
   gap: 4px;
   flex-wrap: wrap;
 }
+.wfh-save-fb {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 8px;
+  color: #ccc;
+  font-size: 12px;
+  line-height: 1.35;
+  cursor: pointer;
+  user-select: none;
+}
+.wfh-save-fb input {
+  margin-top: 2px;
+}
+.wfh-posted-add {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.wfh-posted-add .fh-input {
+  flex: 1;
+  min-width: 0;
+}
+.wfh-posted-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.wfh-posted-url {
+  color: #9ecbff;
+  word-break: break-all;
+  font-size: 12px;
+  line-height: 1.35;
+}
+.wfh-fb-mark {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  background: #1877f2;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}

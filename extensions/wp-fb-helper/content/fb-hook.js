@@ -9,7 +9,7 @@
           source: "wp-fb-helper",
           type: "FB_HTTP",
           url: String(url || ""),
-          body: String(body || "").slice(0, 80000),
+          body: String(body || "").slice(0, 200000),
         },
         "*"
       );

@@ -191,8 +191,42 @@ async function fetchFilters() {
   }
 }
 
+function normalizeFbUrl(raw) {
+  let u = String(raw || "").trim();
+  if (!u) return "";
+  u = u.replace(/\\\//g, "/");
+  const q = u.indexOf("?");
+  if (q >= 0) u = u.slice(0, q);
+  if (!/^https?:\/\//i.test(u)) return "";
+  if (u.indexOf("facebook.com") === -1) return "";
+  if (/fbcdn\.net|static\.xx\.fbcdn|scontent\./i.test(u)) return "";
+  return u;
+}
+
+function listenUrlMatches(url, part) {
+  const u = String(url || "").toLowerCase();
+  const p = String(part || "").toLowerCase().trim();
+  if (!p || p === "graph.facebook.com") {
+    return u.indexOf("graph.facebook.com") !== -1 || u.indexOf("/api/graphql") !== -1;
+  }
+  return u.indexOf(p) !== -1;
+}
+
+function permalinkFromStory(story) {
+  if (!story || typeof story !== "object") return "";
+  const direct = normalizeFbUrl(story.url || story.permalink_url || "");
+  if (direct) return direct;
+  const postId = String(story.legacy_story_hideable_id || story.post_id || "").replace(/\D/g, "");
+  const to = story.to && typeof story.to === "object" ? story.to : {};
+  const groupId = String(to.id || "").replace(/\D/g, "");
+  if (postId && groupId) {
+    return "https://www.facebook.com/groups/" + groupId + "/permalink/" + postId + "/";
+  }
+  return "";
+}
+
 function extractFacebookUrl(url, bodyText) {
-  const text = String(bodyText || "");
+  const text = String(bodyText || "").replace(/^for \(;;\);/, "");
   let json = null;
   try {
     json = JSON.parse(text);
@@ -200,11 +234,16 @@ function extractFacebookUrl(url, bodyText) {
     json = null;
   }
   if (json && typeof json === "object") {
-    if (typeof json.permalink_url === "string" && json.permalink_url.indexOf("facebook.com") !== -1) {
-      return json.permalink_url;
+    const created = json.data && json.data.story_create;
+    const fromStory = permalinkFromStory(created && created.story);
+    if (fromStory) return fromStory;
+    if (typeof json.permalink_url === "string") {
+      const p = normalizeFbUrl(json.permalink_url);
+      if (p) return p;
     }
-    if (typeof json.post_url === "string" && json.post_url.indexOf("facebook.com") !== -1) {
-      return json.post_url;
+    if (typeof json.post_url === "string") {
+      const p = normalizeFbUrl(json.post_url);
+      if (p) return p;
     }
     if (typeof json.id === "string" && json.id.indexOf("_") !== -1) {
       const parts = json.id.split("_");
@@ -213,10 +252,32 @@ function extractFacebookUrl(url, bodyText) {
       }
     }
   }
-  const m = text.match(/https?:\/\/(?:www\.)?facebook\.com\/[^\s"'<>]+/i);
-  if (m) return m[0];
-  if (/facebook\.com/i.test(String(url || ""))) return null;
+  const group = text.match(/https?:\/\/(?:www\.)?facebook\.com\/groups\/\d+\/(?:permalink|posts)\/\d+\/?/i);
+  if (group) return normalizeFbUrl(group[0]) || group[0];
+  const posts = text.match(/https?:\/\/(?:www\.)?facebook\.com\/[^/\s"'<>]+\/posts\/\d+\/?/i);
+  if (posts) return normalizeFbUrl(posts[0]) || posts[0];
   return null;
+}
+
+const CAPTURES_KEY = "socialCaptures";
+const CAPTURES_LIMIT = 200;
+
+async function pushCapture(entry) {
+  const d = await chrome.storage.local.get([CAPTURES_KEY]);
+  const list = Array.isArray(d[CAPTURES_KEY]) ? d[CAPTURES_KEY] : [];
+  const url = String(entry.url || "").trim();
+  if (!url) return list;
+  const next = [{
+    id: Date.now() + "-" + Math.random().toString(16).slice(2),
+    url: url,
+    network: "facebook",
+    viaHelper: entry.viaHelper !== false,
+    postId: Number(entry.postId || 0) || 0,
+    createdAt: Date.now(),
+  }].concat(list.filter((x) => String(x.url) !== url));
+  const sliced = next.slice(0, CAPTURES_LIMIT);
+  await chrome.storage.local.set({ [CAPTURES_KEY]: sliced });
+  return sliced;
 }
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
@@ -292,19 +353,52 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     if (msg.type === "FB_HTTP") {
       const s = await getSettings();
       if (!s.fbListenEnabled) return { ignored: true };
-      const part = s.fbListenUrlPart || "graph.facebook.com";
       const url = String(msg.url || "");
-      if (part && url.indexOf(part) === -1) return { ignored: true };
+      if (!listenUrlMatches(url, s.fbListenUrlPart)) return { ignored: true };
       const found = extractFacebookUrl(url, msg.body);
       if (!found) return { ignored: true };
-      const sel = await chrome.storage.local.get(["selectedPostId"]);
+      const sel = await chrome.storage.local.get(["selectedPostId", "saveFbToSelected"]);
       const postId = Number(sel.selectedPostId || 0);
-      if (postId <= 0) return { found: found, saved: false };
+      const saveToNews = sel.saveFbToSelected !== false;
+      await pushCapture({ url: found, viaHelper: true, postId: postId });
+      if (!saveToNews || postId <= 0) {
+        return { found: found, saved: false, captured: true };
+      }
       const saved = await wpFetch("/easy-mcp-post-meta/v1/fields/" + postId, {
         method: "POST",
         body: JSON.stringify({ social_posts: { facebook: found } }),
       });
-      return { found: found, saved: true, post: saved };
+      return { found: found, saved: true, captured: true, post: saved };
+    }
+
+    if (msg.type === "LIST_CAPTURES") {
+      const d = await chrome.storage.local.get([CAPTURES_KEY]);
+      return { items: Array.isArray(d[CAPTURES_KEY]) ? d[CAPTURES_KEY] : [] };
+    }
+
+    if (msg.type === "ADD_CAPTURE") {
+      const url = String(msg.url || "").trim();
+      if (!url) throwError("URL required.", "url_required");
+      const items = await pushCapture({
+        url: url,
+        viaHelper: !!msg.viaHelper,
+        postId: Number(msg.post_id || 0) || 0,
+      });
+      return { items: items };
+    }
+
+    if (msg.type === "DELETE_CAPTURE") {
+      const id = String(msg.id || "");
+      const d = await chrome.storage.local.get([CAPTURES_KEY]);
+      const list = Array.isArray(d[CAPTURES_KEY]) ? d[CAPTURES_KEY] : [];
+      const items = list.filter((x) => String(x.id) !== id);
+      await chrome.storage.local.set({ [CAPTURES_KEY]: items });
+      return { items: items };
+    }
+
+    if (msg.type === "CLEAR_CAPTURES") {
+      await chrome.storage.local.set({ [CAPTURES_KEY]: [] });
+      return { items: [] };
     }
 
     throwError("Unknown message: " + msg.type, "unknown_message");

@@ -84,6 +84,8 @@
     extraDraft: "",
     extraEditingId: null,
     extraHistory: [],
+    captures: [],
+    saveFbToSelected: true,
     refreshSec: 0,
     fieldsFp: "",
     listFp: "",
@@ -95,6 +97,7 @@
 
   const EXTRA_KEY = "extraNotes";
   const QUERY_KEY = "listQuery";
+  const CAPTURES_KEY = "socialCaptures";
   const HISTORY_LIMIT = 50;
   const SOCIAL_OPTS = ["any", "not_posted", "posted"];
   const ORDER_OPTS = ["date_desc", "date_asc"];
@@ -868,12 +871,17 @@
     tabMain.type = "button";
     const tabExtra = el("button", "", "Extra");
     tabExtra.type = "button";
+    const tabPosted = el("button", "", "Posted");
+    tabPosted.type = "button";
     tabs.appendChild(tabMain);
     tabs.appendChild(tabExtra);
+    tabs.appendChild(tabPosted);
 
     const mainPane = el("div", "wfh-pane-main");
     const extraPane = el("div", "wfh-pane-extra");
     extraPane.style.display = "none";
+    const postedPane = el("div", "wfh-pane-posted");
+    postedPane.style.display = "none";
 
     const extraArea = document.createElement("textarea");
     extraArea.className = "wfh-extra-area";
@@ -892,6 +900,25 @@
     extraPane.appendChild(extraActions);
     extraPane.appendChild(el("div", "wfh-field-label", "History"));
     extraPane.appendChild(extraHist);
+
+    const postedAddRow = el("div", "wfh-posted-add");
+    const postedInput = document.createElement("input");
+    postedInput.className = "fh-input";
+    postedInput.type = "url";
+    postedInput.placeholder = "https://www.facebook.com/…";
+    const postedAddBtn = el("button", "fh-btn fh-btn-primary fh-btn-xs", "Add");
+    postedAddBtn.type = "button";
+    postedAddRow.appendChild(postedInput);
+    postedAddRow.appendChild(postedAddBtn);
+    const postedActions = el("div", "wfh-extra-actions");
+    const postedClear = el("button", "fh-btn fh-btn-ghost fh-btn-xs", "Delete all");
+    postedClear.type = "button";
+    postedActions.appendChild(postedClear);
+    const postedList = el("div", "wfh-hist");
+    postedPane.appendChild(el("div", "wfh-field-label", "Captured post URLs"));
+    postedPane.appendChild(postedAddRow);
+    postedPane.appendChild(postedActions);
+    postedPane.appendChild(postedList);
 
     const picker = el("div", "fh-picker-dropdown");
     const filters = el("div", "wfh-filters");
@@ -921,9 +948,17 @@
     row2.appendChild(social);
     row2.appendChild(order);
 
+    const saveRow = el("label", "wfh-save-fb");
+    const saveFb = document.createElement("input");
+    saveFb.type = "checkbox";
+    saveFb.checked = true;
+    saveRow.appendChild(saveFb);
+    saveRow.appendChild(document.createTextNode(" Update selected news Facebook URL"));
+
     filters.appendChild(search);
     filters.appendChild(row1);
     filters.appendChild(row2);
+    filters.appendChild(saveRow);
 
     const list = el("div", "fh-picker-list");
 
@@ -956,6 +991,7 @@
     mainPane.appendChild(fields);
     body.appendChild(mainPane);
     body.appendChild(extraPane);
+    body.appendChild(postedPane);
     if (!shell) {
       const root = el("div", "fh-root size-m");
       root.id = ROOT_ID;
@@ -979,8 +1015,15 @@
       picker,
       tabMain,
       tabExtra,
+      tabPosted,
       mainPane,
       extraPane,
+      postedPane,
+      postedInput,
+      postedAddBtn,
+      postedClear,
+      postedList,
+      saveFb,
       extraArea,
       extraSave,
       extraCopy,
@@ -1043,6 +1086,27 @@
     });
     ui.tabMain.addEventListener("click", () => setTab(ui, "main"));
     ui.tabExtra.addEventListener("click", () => setTab(ui, "extra"));
+    ui.tabPosted.addEventListener("click", () => setTab(ui, "posted"));
+    ui.saveFb.addEventListener("change", () => {
+      state.saveFbToSelected = !!ui.saveFb.checked;
+      chrome.storage.local.set({ saveFbToSelected: state.saveFbToSelected }).catch(() => {});
+    });
+    ui.postedAddBtn.addEventListener("click", () => addManualCapture(ui));
+    ui.postedInput.addEventListener("keydown", (ev) => {
+      if (ev.key === "Enter") {
+        ev.preventDefault();
+        addManualCapture(ui);
+      }
+    });
+    ui.postedClear.addEventListener("click", () => {
+      send("CLEAR_CAPTURES")
+        .then((res) => {
+          state.captures = res.items || [];
+          renderCaptures(ui);
+          setStatus(ui, "Captured URLs cleared", "ok");
+        })
+        .catch((e) => setStatus(ui, e.message, "err"));
+    });
     ui.extraArea.addEventListener("input", () => {
       state.extraDraft = ui.extraArea.value;
       persistExtra().catch(() => {});
@@ -1055,8 +1119,70 @@
     state.tab = tab;
     ui.tabMain.classList.toggle("active", tab === "main");
     ui.tabExtra.classList.toggle("active", tab === "extra");
+    ui.tabPosted.classList.toggle("active", tab === "posted");
     ui.mainPane.style.display = tab === "main" ? "block" : "none";
     ui.extraPane.style.display = tab === "extra" ? "block" : "none";
+    ui.postedPane.style.display = tab === "posted" ? "block" : "none";
+    if (tab === "posted") renderCaptures(ui);
+  }
+
+  function renderCaptures(ui) {
+    ui.postedList.innerHTML = "";
+    if (!state.captures.length) {
+      ui.postedList.appendChild(el("div", "fh-muted", "No captured URLs yet"));
+      return;
+    }
+    state.captures.forEach((item) => {
+      const row = el("div", "wfh-hist-item wfh-posted-item");
+      const head = el("div", "wfh-posted-head");
+      if (item.viaHelper) {
+        const mark = el("span", "wfh-fb-mark", "f");
+        mark.title = "Captured from Facebook";
+        head.appendChild(mark);
+      }
+      const link = document.createElement("a");
+      link.className = "wfh-posted-url";
+      link.href = item.url;
+      link.target = "_blank";
+      link.rel = "noreferrer";
+      link.textContent = item.url;
+      head.appendChild(link);
+      row.appendChild(head);
+      const actions = el("div", "wfh-hist-actions");
+      const copyBtn = el("button", "fh-btn fh-btn-ghost fh-btn-xs", "Copy");
+      copyBtn.type = "button";
+      copyBtn.addEventListener("click", () => copyText(item.url || "", copyBtn));
+      const delBtn = el("button", "fh-btn fh-btn-ghost fh-btn-xs", "Delete");
+      delBtn.type = "button";
+      delBtn.addEventListener("click", () => {
+        send("DELETE_CAPTURE", { id: item.id })
+          .then((res) => {
+            state.captures = res.items || [];
+            renderCaptures(ui);
+          })
+          .catch((e) => setStatus(ui, e.message, "err"));
+      });
+      actions.appendChild(copyBtn);
+      actions.appendChild(delBtn);
+      row.appendChild(actions);
+      ui.postedList.appendChild(row);
+    });
+  }
+
+  function addManualCapture(ui) {
+    const url = String(ui.postedInput.value || "").trim();
+    if (!url) {
+      setStatus(ui, "URL is empty", "err");
+      return;
+    }
+    send("ADD_CAPTURE", { url: url, viaHelper: false })
+      .then((res) => {
+        state.captures = res.items || [];
+        ui.postedInput.value = "";
+        renderCaptures(ui);
+        setStatus(ui, "URL added", "ok");
+      })
+      .catch((e) => setStatus(ui, e.message, "err"));
   }
 
   function renderExtraHistory(ui) {
@@ -1134,8 +1260,14 @@
       .then((res) => {
         const ui = window.__WP_FB_HELPER_UI__;
         if (!ui) return;
-        if (res && res.saved && res.found) {
-          if (state.selected) {
+        if (res && res.found) {
+          send("LIST_CAPTURES")
+            .then((cap) => {
+              state.captures = cap.items || [];
+              if (state.tab === "posted") renderCaptures(ui);
+            })
+            .catch(() => {});
+          if (res.saved && state.selected) {
             state.selected.social_posts = Object.assign({}, state.selected.social_posts || {}, {
               facebook: res.found,
             });
@@ -1145,8 +1277,10 @@
             mergePost(state.selected);
             patchList(ui);
             patchFields(ui);
+            setStatus(ui, "Facebook URL saved", "ok");
+          } else if (res.captured) {
+            setStatus(ui, "Facebook URL captured", "ok");
           }
-          setStatus(ui, "Facebook URL saved", "ok");
         }
       })
       .catch(() => {});
@@ -1160,8 +1294,17 @@
       await loadExtra();
       ui.extraArea.value = state.extraDraft;
       renderExtraHistory(ui);
-      const local = await chrome.storage.local.get(["selectedPostId", "panelRefreshSec", QUERY_KEY]);
+      const local = await chrome.storage.local.get([
+        "selectedPostId",
+        "panelRefreshSec",
+        QUERY_KEY,
+        "saveFbToSelected",
+        CAPTURES_KEY,
+      ]);
       state.refreshSec = clampRefreshSec(local.panelRefreshSec);
+      state.saveFbToSelected = local.saveFbToSelected !== false;
+      ui.saveFb.checked = state.saveFbToSelected;
+      state.captures = Array.isArray(local[CAPTURES_KEY]) ? local[CAPTURES_KEY] : [];
       applyStoredQuery(local[QUERY_KEY]);
       paintQueryControls(ui);
       await loadFilters(ui);
