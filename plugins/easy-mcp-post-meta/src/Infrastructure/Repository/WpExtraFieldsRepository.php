@@ -4,15 +4,21 @@ declare(strict_types=1);
 namespace EasyMCP\PostMeta\Infrastructure\Repository;
 
 use EasyMCP\PostMeta\Domain\ExtraFieldsKeys;
+use EasyMCP\PostMeta\Domain\LeadSimhash;
 use EasyMCP\PostMeta\Domain\Repository\ExtraFieldsRepositoryInterface;
 use EasyMCP\PostMeta\Infrastructure\Url\SourceUrlNormalizer;
 
 final class WpExtraFieldsRepository implements ExtraFieldsRepositoryInterface {
 
-	private SourceUrlNormalizer $urls;
+	private const SCAN_WITH_HASH = 1000;
+	private const SCAN_EMPTY     = 400;
 
-	public function __construct( SourceUrlNormalizer $urls ) {
-		$this->urls = $urls;
+	private SourceUrlNormalizer $urls;
+	private LeadSimhash $simhash;
+
+	public function __construct( SourceUrlNormalizer $urls, LeadSimhash $simhash ) {
+		$this->urls    = $urls;
+		$this->simhash = $simhash;
 	}
 
 	public function save( int $post_id, array $source_urls, array $social_titles, ?array $social_posts = null ): void {
@@ -35,6 +41,15 @@ final class WpExtraFieldsRepository implements ExtraFieldsRepositoryInterface {
 		}
 	}
 
+	public function save_lead_simhash( int $post_id, string $hash ): void {
+		$hash = strtolower( trim( $hash ) );
+		if ( $hash === '' ) {
+			delete_post_meta( $post_id, ExtraFieldsKeys::LEAD_SIMHASH );
+			return;
+		}
+		update_post_meta( $post_id, ExtraFieldsKeys::LEAD_SIMHASH, $hash );
+	}
+
 	public function get( int $post_id ): array {
 		$stored_urls = get_post_meta( $post_id, ExtraFieldsKeys::SOURCE_URLS, true );
 		$urls        = $this->urls->list_from( $stored_urls );
@@ -49,6 +64,7 @@ final class WpExtraFieldsRepository implements ExtraFieldsRepositoryInterface {
 			'source_urls'   => $urls,
 			'social_titles' => $titles,
 			'social_posts'  => $this->normalize_social_posts( get_post_meta( $post_id, ExtraFieldsKeys::SOCIAL_POSTS, true ) ),
+			'lead_simhash'  => $this->stored_hash( $post_id ),
 		];
 	}
 
@@ -175,6 +191,139 @@ final class WpExtraFieldsRepository implements ExtraFieldsRepositoryInterface {
 		return $this->card( $post, $this->get( $post_id ), [] );
 	}
 
+	public function find_by_lead_simhash( string $hash, int $max_hamming, bool $persist_empty ): array {
+		$statuses = [ 'draft', 'pending', 'private', 'publish', 'future' ];
+		$seen     = [];
+		$hits     = [];
+
+		foreach ( $this->query_posts( $statuses, self::SCAN_WITH_HASH, true ) as $post ) {
+			if ( ! $post instanceof \WP_Post ) {
+				continue;
+			}
+			$id = (int) $post->ID;
+			$seen[ $id ] = true;
+			$stored = $this->stored_hash( $id );
+			$post_hash = $stored;
+			if ( $post_hash === '' ) {
+				$post_hash = $this->hash_post( $post );
+				if ( $persist_empty && $post_hash !== '' ) {
+					$this->save_lead_simhash( $id, $post_hash );
+				}
+			}
+			if ( $post_hash === '' ) {
+				continue;
+			}
+			$dist = $this->simhash->hamming( $hash, $post_hash );
+			if ( $dist > $max_hamming ) {
+				continue;
+			}
+			$card = $this->card( $post, $this->get( $id ), [] );
+			$card['lead_simhash'] = $post_hash;
+			$card['hamming']      = $dist;
+			$hits[] = $card;
+		}
+
+		foreach ( $this->query_posts( $statuses, self::SCAN_EMPTY, false ) as $post ) {
+			if ( ! $post instanceof \WP_Post ) {
+				continue;
+			}
+			$id = (int) $post->ID;
+			if ( isset( $seen[ $id ] ) ) {
+				continue;
+			}
+			$post_hash = $this->hash_post( $post );
+			if ( $persist_empty && $post_hash !== '' ) {
+				$this->save_lead_simhash( $id, $post_hash );
+			}
+			if ( $post_hash === '' ) {
+				continue;
+			}
+			$dist = $this->simhash->hamming( $hash, $post_hash );
+			if ( $dist > $max_hamming ) {
+				continue;
+			}
+			$fields = $this->get( $id );
+			$fields['lead_simhash'] = $post_hash;
+			$card = $this->card( $post, $fields, [] );
+			$card['lead_simhash'] = $post_hash;
+			$card['hamming']      = $dist;
+			$hits[] = $card;
+		}
+
+		usort(
+			$hits,
+			static function ( array $a, array $b ): int {
+				$ha = isset( $a['hamming'] ) ? (int) $a['hamming'] : 64;
+				$hb = isset( $b['hamming'] ) ? (int) $b['hamming'] : 64;
+				if ( $ha === $hb ) {
+					return (int) $b['post_id'] - (int) $a['post_id'];
+				}
+				return $ha - $hb;
+			}
+		);
+
+		return $hits;
+	}
+
+	/**
+	 * @param string[] $statuses
+	 * @return \WP_Post[]
+	 */
+	private function query_posts( array $statuses, int $limit, bool $with_hash ): array {
+		$meta_query = $with_hash
+			? [
+				[
+					'key'     => ExtraFieldsKeys::LEAD_SIMHASH,
+					'value'   => '',
+					'compare' => '!=',
+				],
+			]
+			: [
+				'relation' => 'OR',
+				[
+					'key'     => ExtraFieldsKeys::LEAD_SIMHASH,
+					'compare' => 'NOT EXISTS',
+				],
+				[
+					'key'     => ExtraFieldsKeys::LEAD_SIMHASH,
+					'value'   => '',
+					'compare' => '=',
+				],
+			];
+		$query = new \WP_Query(
+			[
+				'post_type'              => 'post',
+				'post_status'            => $statuses,
+				'posts_per_page'         => $limit,
+				'orderby'                => 'date',
+				'order'                  => 'DESC',
+				'meta_query'             => $meta_query,
+				'no_found_rows'          => true,
+				'update_post_term_cache' => false,
+			]
+		);
+		$posts = [];
+		foreach ( $query->posts as $post ) {
+			if ( $post instanceof \WP_Post ) {
+				$posts[] = $post;
+			}
+		}
+		return $posts;
+	}
+
+	private function hash_post( \WP_Post $post ): string {
+		return $this->simhash->compute( (string) $post->post_title, (string) $post->post_content );
+	}
+
+	private function stored_hash( int $post_id ): string {
+		$raw = get_post_meta( $post_id, ExtraFieldsKeys::LEAD_SIMHASH, true );
+		$hash = strtolower( trim( is_string( $raw ) ? $raw : '' ) );
+		if ( $hash !== '' && preg_match( LeadSimhash::HEX_PATTERN, $hash ) ) {
+			return $hash;
+		}
+		return '';
+	}
+
 	/**
 	 * @param string[]             $matched_urls
 	 * @param array<string, mixed> $fields
@@ -223,6 +372,7 @@ final class WpExtraFieldsRepository implements ExtraFieldsRepositoryInterface {
 			'source_urls'  => $fields['source_urls'],
 			'social_titles'=> $fields['social_titles'],
 			'social_posts' => $fields['social_posts'],
+			'lead_simhash' => isset( $fields['lead_simhash'] ) ? (string) $fields['lead_simhash'] : '',
 			'posted_on'    => $posted_on,
 			'matched_urls' => $matched_urls,
 			'edit_link'    => get_edit_post_link( (int) $post->ID, 'raw' ),

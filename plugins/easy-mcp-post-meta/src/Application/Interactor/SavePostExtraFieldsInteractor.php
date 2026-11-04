@@ -10,11 +10,17 @@ use EasyMCP\PostMeta\Domain\Repository\ExtraFieldsRepositoryInterface;
 final class SavePostExtraFieldsInteractor {
 
 	private ExtraFieldsRepositoryInterface $fields;
+	private PersistLeadSimhashInteractor $persist;
 	private LoggerInterface $logger;
 
-	public function __construct( ExtraFieldsRepositoryInterface $fields, LoggerInterface $logger ) {
-		$this->fields = $fields;
-		$this->logger = $logger;
+	public function __construct(
+		ExtraFieldsRepositoryInterface $fields,
+		PersistLeadSimhashInteractor $persist,
+		LoggerInterface $logger
+	) {
+		$this->fields  = $fields;
+		$this->persist = $persist;
+		$this->logger  = $logger;
 	}
 
 	/**
@@ -47,6 +53,17 @@ final class SavePostExtraFieldsInteractor {
 				}
 			}
 			$this->fields->save( $post_id, $urls, $titles, $posts );
+			$stored = isset( $current['lead_simhash'] ) ? (string) $current['lead_simhash'] : '';
+			if ( $stored === '' && array_key_exists( 'lead_simhash', $input ) ) {
+				$hash = strtolower( trim( (string) $input['lead_simhash'] ) );
+				if ( $hash !== '' && ! preg_match( '/^[0-9a-f]{16}$/', $hash ) ) {
+					throw new MetaException( 'lead_simhash must be 16 lowercase hex characters.', 'invalid_lead_simhash' );
+				}
+				if ( $hash !== '' ) {
+					$this->fields->save_lead_simhash( $post_id, $hash );
+				}
+			}
+			$this->persist->fill_if_empty( $post_id );
 			$saved = $this->fields->get( $post_id );
 			$this->logger->info( 'Saved extra fields.', [ 'post_id' => $post_id ] );
 			return [
@@ -57,6 +74,7 @@ final class SavePostExtraFieldsInteractor {
 				'source_urls'   => $saved['source_urls'],
 				'social_titles' => $saved['social_titles'],
 				'social_posts'  => $saved['social_posts'],
+				'lead_simhash'  => $saved['lead_simhash'],
 				'message'       => 'Extra fields saved.',
 			];
 		} catch ( MetaException $e ) {
@@ -79,6 +97,7 @@ final class SavePostExtraFieldsInteractor {
 			'source_urls'   => [],
 			'social_titles' => [],
 			'social_posts'  => [],
+			'lead_simhash'  => '',
 			'message'       => null,
 		];
 	}

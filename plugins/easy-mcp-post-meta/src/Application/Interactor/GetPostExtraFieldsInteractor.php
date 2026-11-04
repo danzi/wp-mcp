@@ -60,6 +60,7 @@ final class GetPostExtraFieldsInteractor {
 			'source_urls'   => [],
 			'social_titles' => [],
 			'social_posts'  => [],
+			'lead_simhash'  => '',
 		];
 	}
 }

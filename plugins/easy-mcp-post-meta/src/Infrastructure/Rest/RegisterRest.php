@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace EasyMCP\PostMeta\Infrastructure\Rest;
 
+use EasyMCP\PostMeta\Application\Interactor\FindPostsByLeadSimhashInteractor;
 use EasyMCP\PostMeta\Application\Interactor\FindPostsBySocialInteractor;
 use EasyMCP\PostMeta\Application\Interactor\FindPostsBySourcesInteractor;
 use EasyMCP\PostMeta\Application\Interactor\GetPostExtraFieldsInteractor;
@@ -16,6 +17,7 @@ final class RegisterRest {
 	private SavePostExtraFieldsInteractor $save;
 	private FindPostsBySourcesInteractor $find;
 	private FindPostsBySocialInteractor $social;
+	private FindPostsByLeadSimhashInteractor $lead;
 	private ListPostsInteractor $list;
 	private ListPostFiltersInteractor $filters;
 	private RestAuth $auth;
@@ -25,6 +27,7 @@ final class RegisterRest {
 		SavePostExtraFieldsInteractor $save,
 		FindPostsBySourcesInteractor $find,
 		FindPostsBySocialInteractor $social,
+		FindPostsByLeadSimhashInteractor $lead,
 		ListPostsInteractor $list,
 		ListPostFiltersInteractor $filters,
 		RestAuth $auth
@@ -33,6 +36,7 @@ final class RegisterRest {
 		$this->save    = $save;
 		$this->find    = $find;
 		$this->social  = $social;
+		$this->lead    = $lead;
 		$this->list    = $list;
 		$this->filters = $filters;
 		$this->auth    = $auth;
@@ -73,6 +77,19 @@ final class RegisterRest {
 				'callback'            => function ( \WP_REST_Request $request ) {
 					$body = $request->get_json_params();
 					return rest_ensure_response( $this->find->execute( is_array( $body ) ? $body : [] ) );
+				},
+				'permission_callback' => [ $this, 'can_edit' ],
+			]
+		);
+
+		register_rest_route(
+			'easy-mcp-post-meta/v1',
+			'/find-by-lead-simhash',
+			[
+				'methods'             => 'POST',
+				'callback'            => function ( \WP_REST_Request $request ) {
+					$body = $request->get_json_params();
+					return rest_ensure_response( $this->lead->execute( is_array( $body ) ? $body : [] ) );
 				},
 				'permission_callback' => [ $this, 'can_edit' ],
 			]

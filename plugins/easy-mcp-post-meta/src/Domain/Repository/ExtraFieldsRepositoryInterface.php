@@ -12,8 +12,10 @@ interface ExtraFieldsRepositoryInterface {
 	 */
 	public function save( int $post_id, array $source_urls, array $social_titles, ?array $social_posts = null ): void;
 
+	public function save_lead_simhash( int $post_id, string $hash ): void;
+
 	/**
-	 * @return array{source_urls:string[],social_titles:string[],social_posts:array<string,string>}
+	 * @return array{source_urls:string[],social_titles:string[],social_posts:array<string,string>,lead_simhash:string}
 	 */
 	public function get( int $post_id ): array;
 
@@ -32,4 +34,9 @@ interface ExtraFieldsRepositoryInterface {
 	 * @return array<string, mixed>|null
 	 */
 	public function card_for_id( int $post_id ): ?array;
+
+	/**
+	 * @return list<array<string, mixed>>
+	 */
+	public function find_by_lead_simhash( string $hash, int $max_hamming, bool $persist_empty ): array;
 }

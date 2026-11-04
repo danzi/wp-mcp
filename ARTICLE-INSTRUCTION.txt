@@ -168,7 +168,7 @@ slug/
 <!-- /wp:quote -->
 ```
 7. Thumbnail только `featured_image_id` / `featured_media`, в контент не ставить.
-8. Новый пост: `wp_ability_easy_mcp_polylang_create_post_with_language` (`draft`, `featured_image_id`, content с блоками, `source_urls`, `social_titles`). Существующий: `wp_update_post` + язык + Yoast + при наличии тула `easy-mcp-post-meta/set-fields`. Нет поста с ID — ошибка.
+8. Новый пост: `wp_ability_easy_mcp_polylang_create_post_with_language` (`draft`, `featured_image_id`, content с блоками, `source_urls`, `social_titles`, `lead_simhash` если кабинет уже дал 16 hex). Существующий: `wp_update_post` + язык + Yoast + при наличии тула `easy-mcp-post-meta/set-fields`. Нет поста с ID — ошибка.
 9. Верни `post_id` и edit-ссылку. Честно: что ушло в WP, что осталось только на диске.
 
 ### Тайтл для FB (`fb_title`)
@@ -482,8 +482,9 @@ Overlay на thumbnail: "оригинальный текст"
 - `wp_ability_easy_mcp_polylang_get_post_language`
 - `wp_yoast_get_post_seo`
 - `wp_get_post_meta` — сырая мета, если нужно
-- `easy-mcp-post-meta/get-fields` — source_urls + social_titles + social_posts (тула нет → пропусти)
+- `easy-mcp-post-meta/get-fields` — source_urls + social_titles + social_posts + lead_simhash (тула нет → пропусти)
 - `easy-mcp-post-meta/find-by-sources` — `{ "urls": ["https://..."] }`. На search/find_make при count>0 — другая новость.
+- `easy-mcp-post-meta/find-by-lead-simhash` — дубль сюжета по lead fingerprint. `{ "lead_simhash": "…" }` или `{ "title": "…", "content": "…" }`. count>0 — сюжет уже на сайте.
 - `easy-mcp-post-meta/find-by-social` — был ли пост в сети / список не запощенных. `{ "post_id": N, "network": "facebook" }` или `{ "network": "facebook", "posted": false }`
 - `wp_list_categories` / `wp_get_category`
 - `wp_list_tags` / `wp_get_tag`
@@ -493,7 +494,7 @@ Overlay на thumbnail: "оригинальный текст"
 ### Создать
 
 - `wp_ability_easy_mcp_polylang_list_languages`
-- `wp_ability_easy_mcp_polylang_create_post_with_language` — новый пост + язык + категории/теги + Yoast-поля + `source_urls` + `social_titles` + `featured_image_id` (если Extra Fields выключен — поля источников просто не уедут, пост всё равно создавай)
+- `wp_ability_easy_mcp_polylang_create_post_with_language` — новый пост + язык + категории/теги + Yoast-поля + `source_urls` + `social_titles` + `lead_simhash` (16 hex с кабинета, если есть) + `featured_image_id` (если Extra Fields выключен — extra-поля просто не уедут, пост всё равно создавай)
 - `wp_create_post` — только если create_post_with_language нет; сразу следом `set_post_language`
 
 ### Обновить уже существующий post_id
@@ -506,7 +507,7 @@ Overlay на thumbnail: "оригинальный текст"
 - `wp_yoast_update_post_seo` — title / description / focus keyword
 - `wp_add_post_terms` — докинуть теги/категории
 - `wp_update_post_meta` — произвольная мета (не `_yoast_wpseo_*`)
-- `easy-mcp-post-meta/set-fields` — source_urls / social_titles / social_posts (`{ "facebook": "https://…" }`)
+- `easy-mcp-post-meta/set-fields` — source_urls / social_titles / social_posts (`{ "facebook": "https://…" }`) / lead_simhash (только если поле ещё пустое)
 - `wp_update_post_blocks` / `wp_get_post_blocks` — если правишь Gutenberg-блоки уже залитого поста
 - ZIP-обновление того же id: `easy-mcp-zip-post-import/import-from-zip` (`post_id` в json, поста нет → ошибка плагина, не новый insert)
 

@@ -5,12 +5,16 @@ namespace EasyMCP\PostMeta\Infrastructure;
 
 use EasyMCP\PostMeta\Ability\RegisterAbilities;
 use EasyMCP\PostMeta\Admin\MetaBox;
+use EasyMCP\PostMeta\Admin\PersistLeadSimhashHook;
+use EasyMCP\PostMeta\Application\Interactor\PersistLeadSimhashInteractor;
+use EasyMCP\PostMeta\Application\Interactor\FindPostsByLeadSimhashInteractor;
 use EasyMCP\PostMeta\Application\Interactor\FindPostsBySocialInteractor;
 use EasyMCP\PostMeta\Application\Interactor\FindPostsBySourcesInteractor;
 use EasyMCP\PostMeta\Application\Interactor\GetPostExtraFieldsInteractor;
 use EasyMCP\PostMeta\Application\Interactor\ListPostFiltersInteractor;
 use EasyMCP\PostMeta\Application\Interactor\ListPostsInteractor;
 use EasyMCP\PostMeta\Application\Interactor\SavePostExtraFieldsInteractor;
+use EasyMCP\PostMeta\Domain\LeadSimhash;
 use EasyMCP\PostMeta\Domain\Logger\LoggerInterface;
 use EasyMCP\PostMeta\Domain\Repository\ExtraFieldsRepositoryInterface;
 use EasyMCP\PostMeta\Domain\Repository\PostListRepositoryInterface;
@@ -31,11 +35,18 @@ final class Container {
 		$this->services[ RestAuth::class ]        = new RestAuth( $this->get( LoggerInterface::class ) );
 		$this->get( RestAuth::class )->register();
 		$this->services[ SourceUrlNormalizer::class ]            = new SourceUrlNormalizer();
+		$this->services[ LeadSimhash::class ]                    = new LeadSimhash();
 		$this->services[ ExtraFieldsRepositoryInterface::class ] = new WpExtraFieldsRepository(
-			$this->get( SourceUrlNormalizer::class )
+			$this->get( SourceUrlNormalizer::class ),
+			$this->get( LeadSimhash::class )
 		);
 		$this->services[ PostListRepositoryInterface::class ] = new WpPostListRepository(
 			$this->get( ExtraFieldsRepositoryInterface::class )
+		);
+		$this->services[ PersistLeadSimhashInteractor::class ] = new PersistLeadSimhashInteractor(
+			$this->get( ExtraFieldsRepositoryInterface::class ),
+			$this->get( LeadSimhash::class ),
+			$this->get( LoggerInterface::class )
 		);
 		$this->services[ GetPostExtraFieldsInteractor::class ] = new GetPostExtraFieldsInteractor(
 			$this->get( ExtraFieldsRepositoryInterface::class ),
@@ -43,6 +54,7 @@ final class Container {
 		);
 		$this->services[ SavePostExtraFieldsInteractor::class ] = new SavePostExtraFieldsInteractor(
 			$this->get( ExtraFieldsRepositoryInterface::class ),
+			$this->get( PersistLeadSimhashInteractor::class ),
 			$this->get( LoggerInterface::class )
 		);
 		$this->services[ FindPostsBySourcesInteractor::class ] = new FindPostsBySourcesInteractor(
@@ -52,6 +64,11 @@ final class Container {
 		);
 		$this->services[ FindPostsBySocialInteractor::class ] = new FindPostsBySocialInteractor(
 			$this->get( ExtraFieldsRepositoryInterface::class ),
+			$this->get( LoggerInterface::class )
+		);
+		$this->services[ FindPostsByLeadSimhashInteractor::class ] = new FindPostsByLeadSimhashInteractor(
+			$this->get( ExtraFieldsRepositoryInterface::class ),
+			$this->get( LeadSimhash::class ),
 			$this->get( LoggerInterface::class )
 		);
 		$this->services[ ListPostsInteractor::class ] = new ListPostsInteractor(
@@ -68,6 +85,7 @@ final class Container {
 			$this->get( SavePostExtraFieldsInteractor::class ),
 			$this->get( FindPostsBySourcesInteractor::class ),
 			$this->get( FindPostsBySocialInteractor::class ),
+			$this->get( FindPostsByLeadSimhashInteractor::class ),
 			$this->get( LoggerInterface::class )
 		);
 		add_action( 'wp_abilities_api_categories_init', [ $registrar, 'register_category' ] );
@@ -78,6 +96,7 @@ final class Container {
 			$this->get( SavePostExtraFieldsInteractor::class ),
 			$this->get( FindPostsBySourcesInteractor::class ),
 			$this->get( FindPostsBySocialInteractor::class ),
+			$this->get( FindPostsByLeadSimhashInteractor::class ),
 			$this->get( ListPostsInteractor::class ),
 			$this->get( ListPostFiltersInteractor::class ),
 			$this->get( RestAuth::class )
@@ -86,6 +105,8 @@ final class Container {
 
 		$box = new MetaBox( $this->get( ExtraFieldsRepositoryInterface::class ) );
 		$box->register();
+		$persist_hook = new PersistLeadSimhashHook( $this->get( PersistLeadSimhashInteractor::class ) );
+		$persist_hook->register();
 	}
 
 	/**

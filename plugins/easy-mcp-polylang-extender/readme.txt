@@ -4,7 +4,7 @@ Tags: mcp, polylang, easy-mcp-ai, multilingual, abilities
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.2.6
+Stable tag: 1.2.8
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -18,7 +18,7 @@ This plugin registers five WordPress Abilities that Easy MCP AI / MCP Adapter ex
 2. **easy-mcp-polylang/get-post-language** – get language + translations of a post
 3. **easy-mcp-polylang/set-post-language** – set language of an existing post
 4. **easy-mcp-polylang/link-post-translations** – link several posts as translations
-5. **easy-mcp-polylang/create-post-with-language** – create a post AND set language in one call (optional: categories, tags, Yoast SEO, source_urls, social_titles, social_posts)
+5. **easy-mcp-polylang/create-post-with-language** – create a post AND set language in one call (optional: categories, tags, Yoast SEO, source_urls, social_titles, social_posts, lead_simhash)
 
 Architecture (clean / layered):
 
@@ -58,7 +58,8 @@ Arguments: {
   "yoast_focus_keyword": "keyword",
   "source_urls": ["https://example.com/original-story"],
   "social_titles": ["😢 Clickbait headline 💔"],
-  "social_posts": { "facebook": "" }
+  "social_posts": { "facebook": "" },
+  "lead_simhash": "0123456789abcdef"
 }
 ```
 
@@ -69,6 +70,12 @@ Arguments: {
 * POST /wp-json/easy-mcp-polylang/v1/create-post-with-language
 
 == Changelog ==
+
+= 1.2.8 =
+* Invalid lead_simhash is ignored; create still succeeds and Extra Fields fills the field from title+content.
+
+= 1.2.7 =
+* Optional lead_simhash on create-post-with-language (Extra Fields active only). Written once via meta_input so save_post does not overwrite a cabinet hash.
 
 = 1.2.6 =
 * Writes _emp_social_posted index with social_posts for Extra Fields find-by-social

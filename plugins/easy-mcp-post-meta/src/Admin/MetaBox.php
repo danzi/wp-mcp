@@ -49,6 +49,8 @@ final class MetaBox {
 		<textarea name="empm_social_titles" rows="4" class="large-text" placeholder="😢 Headline that fits the story 💔"><?php echo esc_textarea( $titles ); ?></textarea>
 		<p><strong>3. Source URLs</strong> (one per line). Used to check whether this news story is already on the site.</p>
 		<textarea name="empm_source_urls" rows="4" class="large-text" placeholder="https://example.com/story"><?php echo esc_textarea( $sources ); ?></textarea>
+		<p><strong>Lead simhash</strong> (readonly, 16 hex). Empty until computed or set via MCP/REST.</p>
+		<input type="text" class="regular-text" readonly value="<?php echo esc_attr( isset( $data['lead_simhash'] ) ? (string) $data['lead_simhash'] : '' ); ?>" />
 		<?php
 	}
 

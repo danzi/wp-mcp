@@ -2,8 +2,8 @@
 /**
  * Plugin Name:       Easy MCP Post Extra Fields
  * Plugin URI:        https://notatabooo.com
- * Description:       Source URLs, social titles, and social post URLs (facebook, telegram, …) on posts. MCP: get/set fields, find by sources, find by social publish status.
- * Version:           1.3.13
+ * Description:       Source URLs, social titles, social post URLs, and lead simhash on posts. MCP: get/set fields, find by sources, find by social, find by lead simhash.
+ * Version:           1.3.15
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Site Owner
@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'EMPM_VERSION', '1.3.13' );
+define( 'EMPM_VERSION', '1.3.15' );
 define( 'EMPM_PLUGIN_FILE', __FILE__ );
 define( 'EMPM_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EMPM_PLUGIN_URL', plugin_dir_url( __FILE__ ) );

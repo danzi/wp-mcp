@@ -35,6 +35,8 @@ final class CreatePostWithLanguageInteractor {
 	 *   yoast_focus_keyword?: string,
 	 *   source_urls?: string[],
 	 *   social_titles?: string[],
+	 *   social_posts?: array<string, string>,
+	 *   lead_simhash?: string,
 	 *   meta?: array<string, mixed>
 	 * } $input
 	 * @return array{success:bool,post_id?:int,language?:string,edit_link?:string,message?:string,error?:string,code?:string}
@@ -100,6 +102,8 @@ final class CreatePostWithLanguageInteractor {
 			];
 		}
 
+		$lead_hash = $this->cabinet_lead_simhash( $input );
+
 		$postarr = [
 			'post_title'   => $title,
 			'post_content' => $content,
@@ -107,6 +111,11 @@ final class CreatePostWithLanguageInteractor {
 			'post_type'    => $post_type,
 			'post_excerpt' => $excerpt,
 		];
+		if ( $lead_hash !== '' ) {
+			$postarr['meta_input'] = [
+				'_emp_lead_simhash' => $lead_hash,
+			];
+		}
 
 		if ( $slug !== '' ) {
 			$postarr['post_name'] = $slug;
@@ -205,7 +214,10 @@ final class CreatePostWithLanguageInteractor {
 			update_post_meta( $post_id, '_yoast_wpseo_focuskw', sanitize_text_field( (string) $input['yoast_focus_keyword'] ) );
 		}
 
-		if ( defined( 'EMPM_VERSION' ) && ( array_key_exists( 'source_urls', $input ) || array_key_exists( 'social_titles', $input ) || array_key_exists( 'social_posts', $input ) ) ) {
+		$has_extra = array_key_exists( 'source_urls', $input )
+			|| array_key_exists( 'social_titles', $input )
+			|| array_key_exists( 'social_posts', $input );
+		if ( defined( 'EMPM_VERSION' ) && $has_extra ) {
 			$this->save_extra_fields(
 				$post_id,
 				isset( $input['source_urls'] ) && is_array( $input['source_urls'] ) ? $input['source_urls'] : [],
@@ -242,6 +254,23 @@ final class CreatePostWithLanguageInteractor {
 				$language
 			),
 		];
+	}
+
+	/**
+	 * Cabinet hash if Extra Fields is active and valid. Empty = omit; WP computes on save.
+	 * Invalid value is ignored — create still succeeds.
+	 *
+	 * @param array<string, mixed> $input
+	 */
+	private function cabinet_lead_simhash( array $input ): string {
+		if ( ! defined( 'EMPM_VERSION' ) || ! array_key_exists( 'lead_simhash', $input ) ) {
+			return '';
+		}
+		$hash = strtolower( trim( (string) $input['lead_simhash'] ) );
+		if ( $hash === '' || ! preg_match( '/^[0-9a-f]{16}$/', $hash ) ) {
+			return '';
+		}
+		return $hash;
 	}
 
 	/**

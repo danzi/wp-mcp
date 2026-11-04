@@ -250,7 +250,7 @@ final class RegisterAbilities {
 			'easy-mcp-polylang/create-post-with-language',
 			[
 				'label'               => 'Create post with Polylang language',
-				'description'         => 'Creates a WordPress post and immediately sets its Polylang language in one call. Optionally sets categories, tags, featured image, Yoast SEO. Optional source_urls, social_titles, and social_posts are stored only if Easy MCP Post Extra Fields is active; create still works without it. Default status is "draft". Prefer this over wp_create_post + set-post-language.',
+				'description'         => 'Creates a WordPress post and immediately sets its Polylang language in one call. Optionally sets categories, tags, featured image, Yoast SEO. Optional source_urls, social_titles, social_posts, and lead_simhash are stored only if Easy MCP Post Extra Fields is active; create still works without it. Pass cabinet lead_simhash as 16 lowercase hex when you have it. Empty, omit, or invalid hash is ignored: Extra Fields computes once on save and never overwrites. Default status is "draft". Prefer this over wp_create_post + set-post-language.',
 				'category'            => 'polylang',
 				'meta'                => $mcp_meta( 'Polylang: Create Post With Language' ),
 				'input_schema'        => [
@@ -331,6 +331,10 @@ final class RegisterAbilities {
 							'type'                 => 'object',
 							'description'          => 'Optional. Network slug => public post URL. Empty/missing key = not posted. Stored only if Extra Fields is active.',
 							'additionalProperties' => [ 'type' => 'string' ],
+						],
+						'lead_simhash' => [
+							'type'        => 'string',
+							'description' => 'Optional. Cabinet lead fingerprint, 16 lowercase hex. Stored once; never overwritten. Empty, omit, or invalid = Extra Fields computes from title+content on save. Does not fail create. Extra Fields active only.',
 						],
 						'meta' => [
 							'type'                 => 'object',
@@ -433,6 +437,7 @@ final class RegisterAbilities {
 						'source_urls'         => $request->get_param( 'source_urls' ),
 						'social_titles'       => $request->get_param( 'social_titles' ),
 						'social_posts'        => $request->get_param( 'social_posts' ),
+						'lead_simhash'        => $request->get_param( 'lead_simhash' ),
 						'meta'                => $request->get_param( 'meta' ),
 					];
 					$input  = array_filter( $input, static fn( $v ) => $v !== null );
