@@ -203,6 +203,14 @@ function normalizeFbUrl(raw) {
   return u;
 }
 
+function storedFacebookPermalink(fields) {
+  const map = fields && fields.social_posts && typeof fields.social_posts === "object" ? fields.social_posts : {};
+  const url = String(map.facebook || "").trim();
+  if (!url) return "";
+  if (url.toLowerCase().indexOf("facebook.com") === -1) return "";
+  return url;
+}
+
 function listenUrlMatches(url, part) {
   const u = String(url || "").toLowerCase();
   const p = String(part || "").toLowerCase().trim();
@@ -363,6 +371,18 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       await pushCapture({ url: found, viaHelper: true, postId: postId });
       if (!saveToNews || postId <= 0) {
         return { found: found, saved: false, captured: true };
+      }
+      const current = await wpFetch("/easy-mcp-post-meta/v1/fields/" + postId, { method: "GET" });
+      const existing = storedFacebookPermalink(current);
+      if (existing) {
+        return {
+          found: found,
+          saved: false,
+          skipped: true,
+          existing: existing,
+          captured: true,
+          post: current,
+        };
       }
       const saved = await wpFetch("/easy-mcp-post-meta/v1/fields/" + postId, {
         method: "POST",

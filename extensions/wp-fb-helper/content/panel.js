@@ -1278,6 +1278,8 @@
             patchList(ui);
             patchFields(ui);
             setStatus(ui, "Facebook URL saved", "ok");
+          } else if (res.skipped) {
+            setStatus(ui, "Facebook URL already on post, not overwritten", "ok");
           } else if (res.captured) {
             setStatus(ui, "Facebook URL captured", "ok");
           }
