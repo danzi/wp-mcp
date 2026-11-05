@@ -4,7 +4,7 @@ Tags: mcp, polylang, easy-mcp-ai, multilingual, abilities
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.2.8
+Stable tag: 1.2.9
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -70,6 +70,9 @@ Arguments: {
 * POST /wp-json/easy-mcp-polylang/v1/create-post-with-language
 
 == Changelog ==
+
+= 1.2.9 =
+* create-post-with-language centers Gutenberg image blocks (aligncenter) unless they already have left/right/wide/full.
 
 = 1.2.8 =
 * Invalid lead_simhash is ignored; create still succeeds and Extra Fields fills the field from title+content.

@@ -150,11 +150,11 @@ slug/
 3. Уже есть чужой публичный HTTPS (сток) → `wp_upload_media_from_url`.
 4. Локальные файлы: `start news/<slug>`, каждый `data.files[].url` → `wp_upload_media_from_url` (thumbnail в контент не ставить), в `finally` `stop`.
 5. Ngrok URL — только аргумент загрузки. После upload бери `id` + URL с сайта (`source_url` / `media_details.sizes.large.source_url`).
-6. В `content` поста каждая сцена — блок Gutenberg (id и `wp-image-ID` = id вложения, `src` = URL медиатеки, size `large`):
+6. В `content` поста каждая сцена — блок Gutenberg по центру (id и `wp-image-ID` = id вложения, `src` = URL медиатеки, size `large`, `align":"center"`). ZIP-импорт тоже ставит центр при замене `[image name="…"]`. Не оставляй картинку без align.
 
 ```
-<!-- wp:image {"id":2503,"sizeSlug":"large","linkDestination":"none"} -->
-<figure class="wp-block-image size-large"><img src="https://САЙТ/wp-content/uploads/…/file-1024x576.jpg" alt="ALT" class="wp-image-2503"/><figcaption class="wp-element-caption">Подпись</figcaption></figure>
+<!-- wp:image {"id":2503,"sizeSlug":"large","linkDestination":"none","align":"center"} -->
+<figure class="wp-block-image aligncenter size-large"><img src="https://САЙТ/wp-content/uploads/…/file-1024x576.jpg" alt="ALT" class="wp-image-2503"/><figcaption class="wp-element-caption">Подпись</figcaption></figure>
 <!-- /wp:image -->
 ```
 
@@ -336,7 +336,7 @@ ZIP `post.json` Translations не пишет. После тула снова `ge
 - где уместно короткий `<ul>` (3–5), не списком всю статью
 - картинки между разделами, не обе в начале
 - на диске / в ZIP: плейсхолдер `[image name="image1.jpg"]`
-- в WordPress при `publish_mcp`: только Gutenberg `<!-- wp:image {"id":…} -->` + `<img class="wp-image-ID" src="https://САЙТ/wp-content/uploads/…">`
+- в WordPress при `publish_mcp`: только Gutenberg `<!-- wp:image {"id":…,"align":"center"} -->` + `<figure class="wp-block-image aligncenter …">` + `<img class="wp-image-ID" src="https://САЙТ/wp-content/uploads/…">` (картинки по центру)
 - нет `<h1>` в контенте, нет пустых `<p><br></p>`
 
 ### Пакет на диске

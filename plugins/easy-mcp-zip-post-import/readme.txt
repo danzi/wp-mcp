@@ -4,7 +4,7 @@ Tags: mcp, zip, import, yoast, polylang
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.2.8
+Stable tag: 1.2.9
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -46,7 +46,7 @@ article-slug/
 * social_titles / fb_titles / facebook_titles – clickbait social headlines
 * social_posts – object of network => public post URL (facebook, telegram, …). Empty key = not posted.
 
-Content shortcode `[image name="image1.jpg" alt="..."]` uploads that file from the images folder and replaces the shortcode. If a thumbnail file is present it is set as featured image.
+Content shortcode `[image name="image1.jpg" alt="..."]` uploads that file from the images folder and replaces the shortcode with a centered Gutenberg image block. If a thumbnail file is present it is set as featured image.
 
 Architecture (clean / layered):
 
@@ -83,6 +83,9 @@ Create the password: WP Admin → Users → Profile → Application Passwords. T
 Prefer the MCP tool easy-mcp-zip-post-import/import-from-zip with zip_url while Easy MCP is already logged into WordPress.
 
 == Changelog ==
+
+= 1.2.9 =
+* [image name="…"] is replaced with a centered Gutenberg image block (aligncenter)
 
 = 1.2.8 =
 * Writes _emp_social_posted index with social_posts so Extra Fields find-by-social can query ZIP imports

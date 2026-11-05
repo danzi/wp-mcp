@@ -43,7 +43,7 @@ final class CreatePostWithLanguageInteractor {
 	 */
 	public function execute( array $input ): array {
 		$title    = isset( $input['title'] ) ? sanitize_text_field( (string) $input['title'] ) : '';
-		$content  = isset( $input['content'] ) ? (string) $input['content'] : '';
+		$content  = isset( $input['content'] ) ? $this->center_content_images( (string) $input['content'] ) : '';
 		$status   = isset( $input['status'] ) ? sanitize_key( (string) $input['status'] ) : 'draft';
 		$language = isset( $input['language'] ) ? sanitize_key( (string) $input['language'] ) : '';
 		$excerpt  = isset( $input['excerpt'] ) ? sanitize_textarea_field( (string) $input['excerpt'] ) : '';
@@ -254,6 +254,52 @@ final class CreatePostWithLanguageInteractor {
 				$language
 			),
 		];
+	}
+
+	/**
+	 * Center Gutenberg image blocks unless they already have a horizontal align.
+	 */
+	private function center_content_images( string $content ): string {
+		if ( $content === '' ) {
+			return $content;
+		}
+		$content = preg_replace_callback(
+			'/<!--\s*wp:image\s+(\{.*?\})\s+-->/',
+			static function ( array $m ): string {
+				$data = json_decode( $m[1], true );
+				if ( ! is_array( $data ) ) {
+					return $m[0];
+				}
+				$align = isset( $data['align'] ) ? (string) $data['align'] : '';
+				if ( $align === '' || $align === 'none' ) {
+					$data['align'] = 'center';
+				}
+				$json = wp_json_encode( $data );
+				if ( ! is_string( $json ) ) {
+					return $m[0];
+				}
+				return '<!-- wp:image ' . $json . ' -->';
+			},
+			$content
+		);
+		if ( ! is_string( $content ) ) {
+			return '';
+		}
+		$content = preg_replace_callback(
+			'/<figure\s+([^>]*class=")([^"]*)(")/i',
+			static function ( array $m ): string {
+				$class = $m[2];
+				if ( ! preg_match( '/(?:^|\s)wp-block-image(?:\s|$)/', $class ) ) {
+					return $m[0];
+				}
+				if ( preg_match( '/(?:^|\s)align(?:left|right|center|wide|full)(?:\s|$)/', $class ) ) {
+					return $m[0];
+				}
+				return '<figure ' . $m[1] . trim( $class . ' aligncenter' ) . $m[3];
+			},
+			$content
+		);
+		return is_string( $content ) ? $content : '';
 	}
 
 	/**

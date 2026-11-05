@@ -53,20 +53,23 @@ final class WpMediaRepository implements MediaRepositoryInterface {
 			$attr['alt'] = $alt;
 		}
 		$html = wp_get_attachment_image( $attachment_id, 'full', false, $attr );
-		if ( is_string( $html ) && $html !== '' ) {
-			return '<figure class="wp-block-image size-full">' . $html . '</figure>';
-		}
-
-		$url = $this->get_url( $attachment_id );
-		if ( $url === '' ) {
-			throw new ImportException( sprintf( 'Uploaded image %d has no URL.', $attachment_id ), 'image_url_missing' );
+		if ( ! is_string( $html ) || $html === '' ) {
+			$url = $this->get_url( $attachment_id );
+			if ( $url === '' ) {
+				throw new ImportException( sprintf( 'Uploaded image %d has no URL.', $attachment_id ), 'image_url_missing' );
+			}
+			$html = sprintf(
+				'<img class="wp-image-%d" src="%s" alt="%s" />',
+				$attachment_id,
+				esc_url( $url ),
+				esc_attr( $alt )
+			);
 		}
 
 		return sprintf(
-			'<figure class="wp-block-image size-full"><img class="wp-image-%d" src="%s" alt="%s" /></figure>',
+			"<!-- wp:image {\"id\":%d,\"sizeSlug\":\"full\",\"linkDestination\":\"none\",\"align\":\"center\"} -->\n<figure class=\"wp-block-image aligncenter size-full\">%s</figure>\n<!-- /wp:image -->",
 			$attachment_id,
-			esc_url( $url ),
-			esc_attr( $alt )
+			$html
 		);
 	}
 

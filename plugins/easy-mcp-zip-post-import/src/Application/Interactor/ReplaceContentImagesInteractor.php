@@ -18,7 +18,7 @@ final class ReplaceContentImagesInteractor {
 	}
 
 	/**
-	 * Replaces [image name="file.jpg"] with uploaded attachment HTML.
+	 * Replaces [image name="file.jpg"] with a centered Gutenberg image block.
 	 *
 	 * @return array{
 	 *   content:string,
